@@ -1,59 +1,55 @@
-"""Orchestration layer — like a @Controller in Spring Boot.
+"""Single-call structured output — no tool loop, no dispatch layer.
 
-Owns the conversation state (messages list) and drives the agent loop:
-send → check tool calls → dispatch → repeat until the model says "stop".
+Instead of a tool schema + agent loop, we define the expected JSON shape
+with a Pydantic model and let the SDK enforce it.
+Java analogy: like annotating a return type with @ResponseBody + a DTO class,
+the framework handles serialization for you.
 """
 
-import json
 from openai import OpenAI
-
-from agent.tools import TOOLS
-from agent.handlers import TOOL_HANDLERS
+from pydantic import BaseModel  # data class with built-in validation — like a Java record
 
 MODEL = "gpt-4o-mini"
-
-SYSTEM_PROMPT = (
-    "You are a helpful assistant. When asked about the biggest cities of a country, "
-    "always call the get_biggest_cities tool. Present the result as a numbered list."
-)
+TOP_N = 3
 
 
-def run(user_query: str, client: OpenAI | None = None) -> str:
-    """Run the agent for one query and return the final text answer.
+class CitiesResult(BaseModel):
+    """Expected JSON shape returned by the model.
 
-    Java equivalent: public String run(String userQuery, OpenAI client)
-    OpenAI | None  == Optional<OpenAI> — a new client is created when None is passed.
+    Java equivalent:
+        public record CitiesResult(List<String> cities) {}
+    """
+    cities: list[str]  # list[str] == List<String> in Java
+
+
+def run(country: str, client: OpenAI | None = None) -> str:
+    """Ask the model for the top N cities and return them as a numbered list.
+
+    Java equivalent: public String run(String country, OpenAI client)
     """
     if client is None:
         client = OpenAI()
 
-    # List<Map<String,String>> — the full conversation history sent on every request.
-    messages = [
-        {"role": "system", "content": SYSTEM_PROMPT},
-        {"role": "user", "content": user_query},
-    ]
+    response = client.beta.chat.completions.parse(
+        model=MODEL,
+        messages=[
+            {"role": "system", "content": "You are a geography expert."},
+            {
+                "role": "user",
+                "content": (
+                    f"List the {TOP_N} most populous cities in {country}, "
+                    "in descending order by population."
+                ),
+            },
+        ],
+        # response_format enforces the JSON shape — the SDK validates the response
+        # against CitiesResult and raises if the model deviates.
+        response_format=CitiesResult,
+    )
 
-    while True:
-        response = client.chat.completions.create(
-            model=MODEL,
-            messages=messages,
-            tools=TOOLS,
-            tool_choice="auto",
-        )
+    # .parsed is already a CitiesResult object — no json.loads() needed.
+    # Java equivalent: objectMapper.readValue(body, CitiesResult.class)
+    result: CitiesResult = response.choices[0].message.parsed
 
-        choice = response.choices[0]  # like List.get(0)
-
-        if choice.finish_reason == "stop":
-            return choice.message.content  # model is done — return the text
-
-        # Model requested tool calls — process each one.
-        messages.append(choice.message)  # must be added before the tool results
-
-        for tc in choice.message.tool_calls:
-            args = json.loads(tc.function.arguments)  # like ObjectMapper.readValue()
-            handler = TOOL_HANDLERS.get(tc.function.name)  # .get() returns None if missing
-            result = handler(args) if handler else json.dumps({"error": "unknown tool"})  # ternary
-
-            messages.append({"role": "tool", "tool_call_id": tc.id, "content": result})
-
-        # Loop back — model reads the tool results and produces the next response.
+    # enumerate() yields (index, value) pairs — like a Java for-each with a counter.
+    return "\n".join(f"{i + 1}. {city}" for i, city in enumerate(result.cities))

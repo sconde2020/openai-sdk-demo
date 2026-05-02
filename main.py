@@ -9,7 +9,7 @@ def prompt_country() -> str:
     """Ask repeatedly until the user types a non-empty country name.
 
     Java equivalent:
-        String country = "";
+        String country;
         do { country = scanner.nextLine().strip(); } while (country.isEmpty());
     """
     while True:
@@ -22,7 +22,6 @@ def prompt_country() -> str:
 def main() -> None:
     print("=== Biggest Cities Agent ===")
 
-    # Loop until the user types a quit signal — like a do-while in Java.
     while True:
         country = prompt_country()
 
@@ -31,7 +30,7 @@ def main() -> None:
             break
 
         print()
-        print(run(f"What are the three biggest cities in {country}?"))
+        print(run(country))  # pass country directly — no query string needed
         print()
 
 
