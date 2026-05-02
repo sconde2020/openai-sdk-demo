@@ -10,6 +10,7 @@ Returns the three biggest cities of a given country using a **single OpenAI call
 openai-sdk-demo/
 ├── agent/
 │   ├── __init__.py   # public API: run(country)
+│   ├── config.py     # model, prompts, and tuneable parameters
 │   └── runner.py     # single structured-output call
 ├── main.py           # interactive CLI loop
 └── requirements.txt
@@ -79,6 +80,17 @@ sequenceDiagram
     User->>main.py: "quit"
     main.py-->>User: "Bye!"
 ```
+
+## Configuration
+
+All tuneable parameters are in `agent/config.py`:
+
+| Parameter | Default | Purpose |
+| --- | --- | --- |
+| `MODEL` | `gpt-4o-mini` | OpenAI model used for the call |
+| `TOP_N` | `3` | Number of cities returned |
+| `SYSTEM_PROMPT` | `"You are a geography expert."` | Model persona |
+| `USER_PROMPT_TEMPLATE` | `"List the {top_n} most populous..."` | User message template |
 
 ## Approach comparison
 
