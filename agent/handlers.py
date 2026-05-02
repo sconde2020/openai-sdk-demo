@@ -7,16 +7,7 @@ via a second OpenAI call, returning structured JSON (no static list, no extra li
 import json
 from openai import OpenAI
 
-TOP_N = 3
-DATA_MODEL = "gpt-4o-mini"
-
-DATA_SYSTEM_PROMPT = (
-    "You are a geography expert. "
-    "When given a country name, respond ONLY with a JSON object. "
-    "The object must have a single key 'cities' whose value is a list "
-    f"of the {TOP_N} most populous cities for that country, ordered largest first. "
-    'Example format: {"cities": ["Tokyo", "Yokohama", "Osaka"]}'
-)
+from agent.config import MODEL, TOP_N, DATA_SYSTEM_PROMPT
 
 
 def get_biggest_cities(country: str) -> str:
@@ -28,9 +19,10 @@ def get_biggest_cities(country: str) -> str:
 
     try:
         response = client.chat.completions.create(
-            model=DATA_MODEL,
+            model=MODEL,
             messages=[
-                {"role": "system", "content": DATA_SYSTEM_PROMPT},
+                # .format() fills the {top_n} placeholder — like String.format() in Java.
+                {"role": "system", "content": DATA_SYSTEM_PROMPT.format(top_n=TOP_N)},
                 {"role": "user", "content": f"Country: {country}"},  # f-string == String.format()
             ],
             response_format={"type": "json_object"},  # forces valid JSON output

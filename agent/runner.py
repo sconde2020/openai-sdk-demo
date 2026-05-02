@@ -9,13 +9,7 @@ from openai import OpenAI
 
 from agent.tools import TOOLS
 from agent.handlers import TOOL_HANDLERS
-
-MODEL = "gpt-4o-mini"
-
-SYSTEM_PROMPT = (
-    "You are a helpful assistant. When asked about the biggest cities of a country, "
-    "always call the get_biggest_cities tool. Present the result as a numbered list."
-)
+from agent.config import MODEL, AGENT_SYSTEM_PROMPT
 
 
 def run(user_query: str, client: OpenAI | None = None) -> str:
@@ -29,7 +23,7 @@ def run(user_query: str, client: OpenAI | None = None) -> str:
 
     # List<Map<String,String>> — the full conversation history sent on every request.
     messages = [
-        {"role": "system", "content": SYSTEM_PROMPT},
+        {"role": "system", "content": AGENT_SYSTEM_PROMPT},
         {"role": "user", "content": user_query},
     ]
 

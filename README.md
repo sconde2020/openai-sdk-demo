@@ -2,16 +2,19 @@
 
 An OpenAI function-calling agent that returns the three biggest cities of a given country, sorted by population. City data is fetched dynamically via a dedicated OpenAI call — no static list, no extra library.
 
+> See branch `feature/structured-output-only` for the single-call Pydantic version.
+
 ## Structure
 
 ```
 openai-sdk-demo/
 ├── agent/
 │   ├── __init__.py   # public API: run()
+│   ├── config.py     # model, prompts, and tuneable parameters
 │   ├── tools.py      # tool schema sent to the model
 │   ├── handlers.py   # tool logic — calls OpenAI to fetch city data
 │   └── runner.py     # agent loop
-├── main.py           # CLI entry point
+├── main.py           # interactive CLI loop
 └── requirements.txt
 ```
 
@@ -30,55 +33,38 @@ export OPENAI_API_KEY="sk-..."
 ## Usage
 
 ```shell
-# Interactive
 python main.py
 ```
 
 ```python
-# As a library
 from agent import run
-print(run("Three biggest cities in France?"))
+print(run("What are the three biggest cities in France?"))
 ```
 
 ## Example output
 
 ```
 === Biggest Cities Agent ===
-Country (or 'quit' to exit): GUINEE
+Country (or 'quit' to exit): Japan
 
-The three biggest cities in Guinea are:
-
-1. Conakry
-2. Nzérékoré
-3. Kankan
-
-Country (or 'quit' to exit): IVORY COST
-
-The three biggest cities in Ivory Coast are:
-
-1. Abidjan
-2. Bouaké
-3. San Pedro
-
-Country (or 'quit' to exit): Benin
-
-The three biggest cities in Benin are:
-
-1. Cotonou
-2. Porto-Novo
-3. Djougou
-
-Country (or 'quit' to exit): Maroc
-
-The three biggest cities in Morocco are:
-
-1. Casablanca
-2. Rabat
-3. Marrakech
+1. Tokyo
+2. Yokohama
+3. Osaka
 
 Country (or 'quit' to exit): quit
 Bye!
 ```
+
+## Configuration
+
+All tuneable parameters are in `agent/config.py`:
+
+| Parameter | Default | Purpose |
+| --- | --- | --- |
+| `MODEL` | `gpt-4o-mini` | OpenAI model used for all calls |
+| `TOP_N` | `3` | Number of cities returned |
+| `AGENT_SYSTEM_PROMPT` | `"You are a helpful assistant..."` | Agent loop persona |
+| `DATA_SYSTEM_PROMPT` | `"You are a geography expert..."` | Data-fetch call persona |
 
 ## How it works
 
@@ -94,7 +80,6 @@ sequenceDiagram
 
     loop until quit signal
         User->>main.py: country name (e.g. "Japan")
-
         main.py->>runner.py: run("What are the three biggest cities in Japan?")
 
         runner.py->>OpenAI: messages + tool schema
