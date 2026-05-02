@@ -1,23 +1,19 @@
 """Single-call structured output — no tool loop, no dispatch layer.
 
-Instead of a tool schema + agent loop, we define the expected JSON shape
-with a Pydantic model and let the SDK enforce it.
-Java analogy: like annotating a return type with @ResponseBody + a DTO class,
-the framework handles serialization for you.
+The expected JSON shape is enforced by a Pydantic model.
+Java analogy: like a @ResponseBody DTO — the framework handles serialization.
 """
 
 from openai import OpenAI
 from pydantic import BaseModel  # data class with built-in validation — like a Java record
 
-MODEL = "gpt-4o-mini"
-TOP_N = 3
+from agent.config import MODEL, TOP_N, SYSTEM_PROMPT, USER_PROMPT_TEMPLATE
 
 
 class CitiesResult(BaseModel):
     """Expected JSON shape returned by the model.
 
-    Java equivalent:
-        public record CitiesResult(List<String> cities) {}
+    Java equivalent: public record CitiesResult(List<String> cities) {}
     """
     cities: list[str]  # list[str] == List<String> in Java
 
@@ -28,28 +24,24 @@ def run(country: str, client: OpenAI | None = None) -> str:
     Java equivalent: public String run(String country, OpenAI client)
     """
     if client is None:
-        client = OpenAI()
+        client = OpenAI()  # reads OPENAI_API_KEY from env
 
     response = client.beta.chat.completions.parse(
         model=MODEL,
         messages=[
-            {"role": "system", "content": "You are a geography expert."},
+            {"role": "system", "content": SYSTEM_PROMPT},
             {
                 "role": "user",
-                "content": (
-                    f"List the {TOP_N} most populous cities in {country}, "
-                    "in descending order by population."
-                ),
+                # .format() fills the placeholders — like String.format() in Java.
+                "content": USER_PROMPT_TEMPLATE.format(country=country, top_n=TOP_N),
             },
         ],
-        # response_format enforces the JSON shape — the SDK validates the response
-        # against CitiesResult and raises if the model deviates.
+        # response_format enforces the JSON shape and raises if the model deviates.
         response_format=CitiesResult,
     )
 
     # .parsed is already a CitiesResult object — no json.loads() needed.
-    # Java equivalent: objectMapper.readValue(body, CitiesResult.class)
     result: CitiesResult = response.choices[0].message.parsed
 
-    # enumerate() yields (index, value) pairs — like a Java for-each with a counter.
+    # enumerate() yields (index, value) pairs — like a for-each with a counter in Java.
     return "\n".join(f"{i + 1}. {city}" for i, city in enumerate(result.cities))

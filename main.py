@@ -6,12 +6,7 @@ QUIT_SIGNALS = {"quit", "exit", "q"}
 
 
 def prompt_country() -> str:
-    """Ask repeatedly until the user types a non-empty country name.
-
-    Java equivalent:
-        String country;
-        do { country = scanner.nextLine().strip(); } while (country.isEmpty());
-    """
+    """Ask repeatedly until the user types a non-empty country name."""
     while True:
         country = input("Country (or 'quit' to exit): ").strip()
         if country:
