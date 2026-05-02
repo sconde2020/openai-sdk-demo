@@ -90,22 +90,32 @@ sequenceDiagram
     participant OpenAI as OpenAI (gpt-4o-mini)
     participant handlers.py
 
-    User->>main.py: "Biggest cities in Japan?"
-    main.py->>runner.py: run(query)
+    main.py-->>User: "Country (or 'quit' to exit): "
 
-    runner.py->>OpenAI: messages + tool schema
-    OpenAI-->>runner.py: tool_call: get_biggest_cities("Japan")
+    loop until quit signal
+        User->>main.py: country name (e.g. "Japan")
 
-    runner.py->>handlers.py: dispatch get_biggest_cities("Japan")
-    handlers.py->>OpenAI: structured JSON prompt
-    OpenAI-->>handlers.py: {"cities": ["Tokyo", "Yokohama", "Osaka"]}
-    handlers.py-->>runner.py: JSON result
+        main.py->>runner.py: run("What are the three biggest cities in Japan?")
 
-    runner.py->>OpenAI: messages + tool result
-    OpenAI-->>runner.py: "1. Tokyo\n2. Yokohama\n3. Osaka"
+        runner.py->>OpenAI: messages + tool schema
+        OpenAI-->>runner.py: tool_call: get_biggest_cities("Japan")
 
-    runner.py-->>main.py: final answer
-    main.py-->>User: print answer
+        runner.py->>handlers.py: dispatch get_biggest_cities("Japan")
+        handlers.py->>OpenAI: structured JSON prompt
+        OpenAI-->>handlers.py: {"cities": ["Tokyo", "Yokohama", "Osaka"]}
+        handlers.py-->>runner.py: JSON result
+
+        runner.py->>OpenAI: messages + tool result
+        OpenAI-->>runner.py: "1. Tokyo\n2. Yokohama\n3. Osaka"
+
+        runner.py-->>main.py: final answer
+        main.py-->>User: print answer
+
+        main.py-->>User: "Country (or 'quit' to exit): "
+    end
+
+    User->>main.py: "quit"
+    main.py-->>User: "Bye!"
 ```
 
 ## Adding a new tool
